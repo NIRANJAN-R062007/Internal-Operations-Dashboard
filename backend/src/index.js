@@ -26,7 +26,7 @@ app.get('/', (req, res) => {
 });
 
 // Cron job — every minute for testing
-cron.schedule('* * * * *', async () => {
+cron.schedule('0 9 * * *', async () => {
   console.log('[CRON] Running reminder check...');
   try {
     const summary = await runReminderLogic();
