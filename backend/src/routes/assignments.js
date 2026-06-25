@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const supabase = require('../config/supabase');
 
-// GET /assignments?status=pending|submitted|overdue
 router.get('/', async (req, res) => {
   try {
     const { status } = req.query;
@@ -30,13 +29,14 @@ router.get('/', async (req, res) => {
       .order('due_date', { ascending: true });
 
     if (status === 'overdue') {
-      query = query.eq('status', 'pending').lt('due_date', now);
+      query = query.eq('status', 'Pending').lt('due_date', now);
+    } else if (status === 'Pending') {
+      query = query.eq('status', 'Pending').gte('due_date', now);
     } else if (status) {
       query = query.eq('status', status);
     }
 
     const { data, error } = await query;
-
     if (error) return res.status(500).json({ error: error.message });
 
     return res.json({ assignments: data });
