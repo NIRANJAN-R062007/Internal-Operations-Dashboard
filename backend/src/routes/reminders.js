@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const supabase = require('../config/supabase');
 const nodemailer = require('nodemailer');
+const https = require('https');
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -11,6 +12,29 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+async function notifyMake(summary) {
+  const url = process.env.MAKE_WEBHOOK_URL;
+  if (!url) return;
+
+  const body = JSON.stringify({
+    checked: summary.checked,
+    remindersSent: summary.remindersSent,
+    skipped: summary.skipped,
+    failed: summary.failed,
+    timestamp: new Date().toISOString(),
+  });
+
+  return new Promise((resolve) => {
+    const req = https.request(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+    }, resolve);
+    req.on('error', () => resolve());
+    req.write(body);
+    req.end();
+  });
+}
+
 async function runReminderLogic() {
   const now = new Date().toISOString();
 
@@ -19,6 +43,7 @@ async function runReminderLogic() {
     .select(`
       id,
       due_date,
+      reminder_count,
       employees (
         id,
         employee_name,
@@ -42,7 +67,6 @@ async function runReminderLogic() {
     const dueDate = new Date(assignment.due_date);
     const hoursUntilDue = (dueDate - new Date()) / (1000 * 60 * 60);
 
-    // Only remind if overdue OR due within 24 hours
     if (hoursUntilDue > 24) {
       skipped++;
       continue;
@@ -56,7 +80,6 @@ async function runReminderLogic() {
         text: `Hi ${employee.employee_name},\n\nThis is a reminder that your form "${form.name}" is due on ${dueDate.toDateString()}.\n\nPlease complete it as soon as possible.\n\nRegards,\nHechaar HR Team`,
       });
 
-      // Log success
       await supabase.from('reminder_logs').insert({
         assignment_id: assignment.id,
         employee_id: employee.id,
@@ -65,7 +88,6 @@ async function runReminderLogic() {
         sent_at: now,
       });
 
-      // Update assignment tracking
       await supabase
         .from('form_assignments')
         .update({
@@ -75,9 +97,7 @@ async function runReminderLogic() {
         .eq('id', assignment.id);
 
       remindersSent++;
-
     } catch (emailErr) {
-      // Log failure
       await supabase.from('reminder_logs').insert({
         assignment_id: assignment.id,
         employee_id: employee.id,
@@ -86,20 +106,22 @@ async function runReminderLogic() {
         error_message: emailErr.message,
         sent_at: now,
       });
-
       failed++;
     }
   }
 
-  return {
+  const summary = {
     checked: assignments.length,
     remindersSent,
     skipped,
     failed,
   };
+
+  await notifyMake(summary);
+
+  return summary;
 }
 
-// POST /assignments/send-reminders
 router.post('/send-reminders', async (req, res) => {
   try {
     const summary = await runReminderLogic();
