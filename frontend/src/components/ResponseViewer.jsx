@@ -31,7 +31,7 @@ export default function ResponseViewer() {
     <div className="card">
       <p className="section-title">Employee Response Viewer</p>
       <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
-        <select value={selectedId} onChange={e => setSelectedId(e.target.value)}>
+        <select value={selectedId} onChange={e => { setSelectedId(e.target.value); setData(null); }}>
           <option value="">Select an employee...</option>
           {EMPLOYEES.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
         </select>
