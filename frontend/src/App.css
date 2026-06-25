@@ -31,3 +31,5 @@ select, input { padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px
 .empty { color: #94a3b8; padding: 32px; text-align: center; }
 .summary-box { background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 16px; margin-top: 16px; }
 .summary-box p { font-size: 14px; margin: 4px 0; color: #166534; }
+.filter-bar button { color: #1a1a1a; background: white; }
+.filter-bar button.active { background: #3b82f6; color: white; }
