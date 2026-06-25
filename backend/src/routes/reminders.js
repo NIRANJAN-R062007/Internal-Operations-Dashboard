@@ -27,7 +27,7 @@ async function notifyMake(summary) {
   });
 }
 
-async function runReminderLogic(manual = false) {
+async function runReminderLogic() {
   const now = new Date().toISOString();
 
   const { data: assignments, error } = await supabase
@@ -103,16 +103,13 @@ async function runReminderLogic(manual = false) {
   }
 
   const summary = { checked: assignments.length, remindersSent, skipped, failed };
-
-  // Only notify Make when triggered manually from UI
-  if (manual) await notifyMake(summary);
-
+  await notifyMake(summary);
   return summary;
 }
 
 router.post('/send-reminders', async (req, res) => {
   try {
-    const summary = await runReminderLogic(true); // manual = true
+    const summary = await runReminderLogic();
     return res.json(summary);
   } catch (err) {
     return res.status(500).json({ error: err.message });
