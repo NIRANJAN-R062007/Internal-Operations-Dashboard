@@ -15,15 +15,7 @@ const transporter = nodemailer.createTransport({
 async function notifyMake(summary) {
   const url = process.env.MAKE_WEBHOOK_URL;
   if (!url) return;
-
-  const body = JSON.stringify({
-    checked: summary.checked,
-    remindersSent: summary.remindersSent,
-    skipped: summary.skipped,
-    failed: summary.failed,
-    timestamp: new Date().toISOString(),
-  });
-
+  const body = JSON.stringify({ ...summary, timestamp: new Date().toISOString() });
   return new Promise((resolve) => {
     const req = https.request(url, {
       method: 'POST',
@@ -35,7 +27,7 @@ async function notifyMake(summary) {
   });
 }
 
-async function runReminderLogic() {
+async function runReminderLogic(manual = false) {
   const now = new Date().toISOString();
 
   const { data: assignments, error } = await supabase
@@ -110,21 +102,17 @@ async function runReminderLogic() {
     }
   }
 
-  const summary = {
-    checked: assignments.length,
-    remindersSent,
-    skipped,
-    failed,
-  };
+  const summary = { checked: assignments.length, remindersSent, skipped, failed };
 
-  await notifyMake(summary);
+  // Only notify Make when triggered manually from UI
+  if (manual) await notifyMake(summary);
 
   return summary;
 }
 
 router.post('/send-reminders', async (req, res) => {
   try {
-    const summary = await runReminderLogic();
+    const summary = await runReminderLogic(true); // manual = true
     return res.json(summary);
   } catch (err) {
     return res.status(500).json({ error: err.message });
