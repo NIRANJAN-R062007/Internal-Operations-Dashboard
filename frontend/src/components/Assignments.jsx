@@ -3,6 +3,13 @@ import axios from 'axios'
 
 const API = 'http://localhost:3001'
 
+const FILTERS = [
+  { label: 'All', value: '' },
+  { label: 'Pending', value: 'Pending' },
+  { label: 'Submitted', value: 'Submitted' },
+  { label: 'Overdue', value: 'overdue' },
+]
+
 export default function Assignments() {
   const [assignments, setAssignments] = useState([])
   const [filter, setFilter] = useState('')
@@ -26,9 +33,14 @@ export default function Assignments() {
     <div className="card">
       <p className="section-title">Form Assignments</p>
       <div className="filter-bar">
-        {['', 'Pending', 'Submitted', 'overdue'].map(f => (
-          <button key={f} className={filter === f ? 'active' : ''} onClick={() => setFilter(f)}>
-            {f === '' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
+        {FILTERS.map(f => (
+          <button
+            key={f.value}
+            className={filter === f.value ? 'active' : ''}
+            onClick={() => setFilter(f.value)}
+            style={{ minWidth: 80 }}
+          >
+            {f.label}
           </button>
         ))}
       </div>
